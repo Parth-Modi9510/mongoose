@@ -21,7 +21,6 @@ app.post('/todos',(req,res)=>{
     newTodo.save().then((doc)=>{
         res.send(doc);
     },(e)=>{
-
         res.status(401).send(e);
     });
 });
@@ -60,6 +59,17 @@ app.get('/todosLN/:lastname',(req,res)=>{
         res.status(401).send(e);
     })
 });
+
+app.delete(`/todos/remove/:id`,(req,res)=>{
+    console.log(req.params.id);
+    Todo.findOneAndRemove({_id:req.params.id}).then((todos)=>{
+        res.send(todos);
+    },(e)=>{
+        console.log(todos);
+        res.status(400).send(e);
+    })
+});
+
 
 app.listen(port,()=>{
     console.log(`Started on Port ${port}`);
