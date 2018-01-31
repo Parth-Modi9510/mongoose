@@ -1,3 +1,4 @@
+let _ = require(`lodash`);
 let express = require(`express`);
 let bodyParser = require(`body-parser`);
 
@@ -68,6 +69,28 @@ app.delete(`/todos/remove/:id`,(req,res)=>{
         console.log(todos);
         res.status(400).send(e);
     })
+});
+
+app.patch('/todos/:id',(req,res)=>{
+
+    let body = _.pick(req.body,['firstName','lastName']);
+    console.log(body);
+    Todo.findByIdAndUpdate(req.params.id,{$set:body},{new:true}).then((todos)=>{
+        res.send(todos);
+    },(e)=>{
+        res.status(400).send(e);
+    })
+});
+
+app.post('/users',(req,res)=>{
+    let body = req.body;
+    let newUser = new User(body);
+
+    newUser.save().then((doc)=>{
+        res.send(doc);
+    },(e)=>{
+        res.status(400).send(e);
+    });
 });
 
 
