@@ -83,12 +83,18 @@ app.patch('/todos/:id',(req,res)=>{
 });
 
 app.post('/users',(req,res)=>{
-    let body = req.body;
+    let body = _.pick(req.body,['username','password']);
     let newUser = new User(body);
 
-    newUser.save().then((doc)=>{
-        res.send(doc);
-    },(e)=>{
+    newUser.save().then(()=>{
+
+        return newUser.generateAuthToken();
+
+    }).then((token)=>{
+
+        res.header('x-auth',token).send(newUser);
+    }).catch((e)=>{
+
         res.status(400).send(e);
     });
 });

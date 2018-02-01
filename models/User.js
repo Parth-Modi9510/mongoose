@@ -1,7 +1,9 @@
 let mongoose = require(`mongoose`);
 let validator = require(`validator`);
+let jwt = require(`jsonwebtoken`);
+let _ = require('lodash');
 
-let User = mongoose.model('User',{
+let UserSchema = new mongoose.Schema({
     username:{
         type:String,
         required:true,
@@ -18,7 +20,7 @@ let User = mongoose.model('User',{
         trim:true,
         minlength:6
     },
-    tokens:{
+    tokens:[{
         access:{
             type:String,
             required:true
@@ -26,9 +28,31 @@ let User = mongoose.model('User',{
         token:{
             type:String,
             required:true
-
         }
-    }
+    }]
 });
+
+UserSchema.methods.toJSON = function () {
+    let user = this;
+    let userObject = user.toObject();
+    return _.pick(userObject,['_id','username']);
+};
+
+UserSchema.methods.generateAuthToken = function () {
+
+    let user = this;
+    let access = 'x-auth';
+
+    let token = jwt.sign({_id:user._id.toHexString(),access},'abc123').toString();
+
+    user.tokens.push({access,token});
+
+    return user.save().then(()=>{
+
+        return token;
+    });
+};
+
+let User = mongoose.model('User',UserSchema);
 
 module.exports = {User};
