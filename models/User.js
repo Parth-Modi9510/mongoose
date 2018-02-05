@@ -4,6 +4,7 @@ let jwt = require(`jsonwebtoken`);
 let _ = require('lodash');
 let bcrypt = require(`bcryptjs`);
 
+
 let UserSchema = new mongoose.Schema({
     username:{
         type:String,

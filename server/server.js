@@ -6,7 +6,9 @@ let bcrypt = require(`bcryptjs`);
 let {mongoose} = require(`./db/mongoose`);
 let {Todo} = require(`./../models/Todo`);
 let {User} = require(`./../models/User`);
+let {PersonalInfo} = require('./../models/products')
 let {authenticate} = require(`./middleware/middleUser`);
+
 
 let app = express();
 const port = process.env.PORT || 2525;
@@ -16,8 +18,16 @@ app.use(bodyParser.json());
 
 app.use((req,res,next) =>{
 
-    res.header('Access-Control-Allow-Origin',' http://localhost:3001');
+    res.header('Access-Control-Allow-Origin',' http://localhost:3000');
+    //res.header('Access-Control-Allow-Origin',' http://localhost:3001');
+    //res.header('Access-Control-Allow-Origin',' http://localhost:3002');
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    res.header("Access-Control-Allow-Credentials",true);
+    res.header(`Access-Control-Allow-Methods`, `POST`);
+    res.header(`Access-Control-Allow-Methods`, `DELETE`);
+    res.header(`Access-Control-Allow-Methods`, `PATCH`);
+
+    res.header(`Access-Control-Expose-Headers`, `x-auth`);
 
     next();
 });
@@ -42,6 +52,8 @@ app.get(`/todos`,(req,res)=>{
         res.send(todos);
     },(e)=>{
         res.status(401).send(e);
+    }).catch((e)=>{
+        res.send(false);
     })
 });
 
@@ -51,6 +63,8 @@ app.get('/todosID/:id',(req,res)=>{
         res.send(todos);
     },(e)=>{
         res.status(401).send(e);
+    }).catch((e)=>{
+        res.send(false);
     })
 });
 
@@ -60,6 +74,8 @@ app.get('/todosFN/:firstname',(req,res)=>{
         res.send(todos);
     },(e)=>{
         res.status(401).send(e);
+    }).catch((e)=>{
+        res.send(false);
     })
 });
 
@@ -69,6 +85,8 @@ app.get('/todosLN/:lastname',(req,res)=>{
         res.send(todos);
     },(e)=>{
         res.status(401).send(e);
+    }).catch((e)=>{
+        res.send(false);
     })
 });
 
@@ -79,6 +97,8 @@ app.delete(`/todos/remove/:id`,(req,res)=>{
     },(e)=>{
         console.log(todos);
         res.status(400).send(e);
+    }).catch((e)=>{
+        res.send(false);
     })
 });
 
@@ -90,6 +110,8 @@ app.patch('/todos/:id',(req,res)=>{
         res.send(todos);
     },(e)=>{
         res.status(400).send(e);
+    }).catch((e)=>{
+        res.send(false);
     })
 });
 
@@ -102,14 +124,14 @@ app.post('/users',(req,res)=>{
         console.log(`1`);
         return newUser.generateAuthToken();
 
-    }).then((token)=>{
+    }).catch((err)=>{res.send(false)}).then((token)=>{
         console.log(`2`);
         res.header('x-auth',token).send(newUser);
     }).catch((e)=>{
         console.log(`3`);
         res.status().send(false);
     });
-});
+})
 
 app.get(`/users/me`,authenticate,(req,res)=>{
 
@@ -120,34 +142,93 @@ app.post(`/users/login`,(req,res)=>{
 
     console.log('was called');
     User.findOne({username:req.body.username}).then((doc)=>{
-        if(!doc){
+        bcrypt.compare(req.body.password,doc.password).then((result)=>{
+            if(result){
 
-            return res.send();
-        }
-        console.log('todos are : ',doc);
-        bcrypt.compare(req.body.password,doc.password,(err,result)=>{
-            if(err){
-                return res.send();
+                res.header('x-auth',doc.tokens[0].token).send(doc);
             }
-            res.send(result);
+            else{
+                res.send(false);
+            }
         }).catch((e)=>{
-            res.send();
-        });
+            res.send(false);
+        })
 
-
-        /*bcrypt.genSalt(10,(err,salt)=>{
-            bcrypt.hash(password,salt,(err,hash)=>{
-                console.log(hash);
-            });
-            let hashed = `$2a$10$WFwH0xFz6.ZTIRYJNbWhAeRkkmu8GKHmbb68dErVKH3IfwXtQZOBS`;
-            bcrypt.compare(password,hashed,(err,res)=>{
-                console.log(res)*/
-
-    },(e)=>{
-        res.status(401).send(e);
+    }).catch((e)=>{
+        res.send(false);
     })
-
 });
+
+// PersonalInfos
+
+app.get(`/users/login/personalInfo`,(req,res)=>{
+    PersonalInfo.find({}).then((info)=>{
+        if(info){
+            res.send(info);
+        }
+        else{
+            res.send(false);
+        }
+    }).catch((e)=>{
+        res.send(false);
+    })
+});
+
+app.post(`/users/login/personalInfo`,(req,res)=>{
+    console.log(req);
+    let body = req.body;
+    let newPerson = new PersonalInfo(body);
+    newPerson.save().then((info)=>{
+        res.send(info);
+    }).catch((e)=>{
+        res.send(false,e);
+    })
+});
+
+app.delete(`/users/login/personalInfo/:id`,(req,res)=>{
+    console.log('id',req.params._id);
+    PersonalInfo.findOneAndRemove({_id:req.params.id}).then((doc)=>{
+        console.log(_id);
+
+        console.log(doc);
+        res.send(doc);
+    }).catch((err)=>{
+        console.log('error');
+        res.send(false);
+    })
+});
+
+app.post('/users/login/personalInfo/GetUser',(req,res)=>{
+    PersonalInfo.findOne({_id:req.body._id}).then((doc)=>{
+        res.send(doc);
+    }).catch((err)=>{
+        res.send(false);
+    })
+});
+
+app.patch('/users/login/personalInfo/updateUser',(req,res)=>{
+    let body = req.body;
+    console.log(body);
+    PersonalInfo.findByIdAndUpdate(req.body._id,{$set:body},{new:true}).then((doc)=>{
+        res.send(doc);
+    }).catch((err)=>{
+        res.send(false);
+    })
+});
+
+
+/*app.patch('/todos/:id',(req,res)=>{
+
+    let body = _.pick(req.body,['firstName','lastName']);
+    console.log(body);
+    Todo.findByIdAndUpdate(req.params.id,{$set:body},{new:true}).then((todos)=>{
+        res.send(todos);
+    },(e)=>{
+        res.status(400).send(e);
+    }).catch((e)=>{
+        res.send(false);
+    })
+});*/
 
 app.listen(port,()=>{
     console.log(`Started on Port ${port}`);
